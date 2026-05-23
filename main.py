@@ -67,7 +67,7 @@ class DatasetLoader:
         return samples
 
 
-class Tokenizer:
+class CharTokenizer:
     def __init__(self):
         self.stoi = {}
         self.itos = {}
