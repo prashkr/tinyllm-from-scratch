@@ -24,7 +24,10 @@
 # y o u <space> -> o u <space> a
 # y o u <space> a -> o u <space> a r
 
+import torch
+import torch.nn as nn
 import random
+import math
 
 BATCH_SIZE = 20 
 BLOCK_SIZE = 100 
@@ -91,3 +94,100 @@ class CharTokenizer:
         for _id in ids:
             output += self.itos[_id]
         return output
+    
+    @property
+    def vocab_size(self):
+        return len(self.stoi)
+
+
+######### Transformer ########
+
+
+class MaskedSelfAttention(nn.Module):
+    """
+    attention score = softmax(qkT/root(d_head) + mask) @ V
+    """
+
+    def __init__(self, d_model: int, d_head: int):
+        super().__init__()
+        self.d_model, self.d_head = d_model, d_head
+        self.Q = nn.Linear(d_model, d_head) # (B, T, C) @ (C, H) = (B, T, H)
+        self.K = nn.Linear(d_model, d_head) # (B, T, C) @ (C, H) = (B, T, H)
+        self.V = nn.Linear(d_model, d_head) # (B, T, C) @ (C, H) = (B, T, H)
+        self.softmax = nn.Softmax(dim=-1) # softmax across last dim 
+        self.output_projection = nn.Linear(d_head, d_model) # final conversion to (B, T, C) shape
+
+    def forward(self, x):
+        # x dim = (B, T, C)
+        _, T, _ = x.shape
+        q = self.Q(x) # (B, T, H)
+        k = self.K(x) # (B, T, H)
+        v = self.V(x) # (B, T, H)
+
+        qkt = q @ torch.transpose(k, -2, -1) # (B, T, H) @ (B, H, T) = (B, T, T)
+        scaled_qkt = qkt / math.sqrt(self.d_head)
+
+        mask = torch.tril(torch.ones(T, T)) # lower triangular matrix with all 1s and 0s
+        masked_qkt = scaled_qkt.masked_fill(mask == 0, float("-inf")) # transform to -inf
+
+        attn_weights = self.softmax(masked_qkt) # (B, T, T)
+        attn = attn_weights @ v # (B, T, T) @ (B, T, H) = (B, T, H)
+        return self.output_projection(attn) 
+
+
+class TransfomerBlock(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        pass
+
+    def forward(self, x):
+        # x dim = (B, T, C)
+        pass
+
+
+class MLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x):
+        # x dim = (B, T, C)
+        pass
+
+
+class Transformer(nn.Module):
+    def __init__(self, 
+        batch_size: int, 
+        seq_length: int, 
+        d_model: int,
+        vocab_size: int,
+        num_heads: int,
+        num_transformer_blocks: int
+    ) -> None:
+        super().__init()
+        # pos embedding (should this be part of the transfomer arch?)
+        self.B, self.T, self.C = batch_size, seq_length, d_model 
+        self.vocab_size = vocab_size
+        self.num_heads = num_heads
+        self.num_transformer_blocks = num_transformer_blocks
+    
+    def forward(self, x):
+        """
+        Note: x has a shape of (B, T, C)
+
+        x = token_embedding(x) + pos_embedding(x)
+        x = x + attention(layernorm(x))
+        x = x + mlp(layernorm(x))
+        """
+        # token embedding
+        x = nn.Embedding(self.vocab_size, self.C)(x)
+
+        # layer norm 
+        x_norm = nn.LayerNorm(self.C)(x)
+
+        # attn block
+        x_attn = AttentionBlock()(x_norm)
+        x = x + x_attn
+
+        x_norm = nn.LayerNorm(self.C)(x) 
+        x_mlp = nn.Linear()
+
