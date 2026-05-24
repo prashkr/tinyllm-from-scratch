@@ -135,59 +135,67 @@ class MaskedSelfAttention(nn.Module):
         return self.output_projection(attn) 
 
 
-class TransfomerBlock(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        pass
-
-    def forward(self, x):
-        # x dim = (B, T, C)
-        pass
-
-
 class MLP(nn.Module):
-    def __init__(self):
+    def __init__(self, d_model: int, d_mlp: int):
         super().__init__()
+        self.linear = nn.Linear(d_model, d_mlp)
+        self.activation_fn = nn.GELU()
+        self.output_projection = nn.Linear(d_mlp, d_model)
     
     def forward(self, x):
-        # x dim = (B, T, C)
-        pass
+        return self.output_projection(self.activation_fn(self.linear(x)))    
+
+
+class TransformerBlock(nn.Module):
+    """
+    x = x + attn(norm(x))
+    x = x + mlp(norm(x))
+    """
+    def __init__(self, d_model: int, d_head: int) -> None:
+        super().__init__()
+        self.attention = MaskedSelfAttention(d_model, d_head)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.mlp = MLP(d_model, 4 * d_model)
+
+    def forward(self, x):
+        x = x + self.attention(self.norm1(x))
+        x = x + self.mlp(self.norm2(x))
+        return x
 
 
 class Transformer(nn.Module):
     def __init__(self, 
-        batch_size: int, 
         seq_length: int, 
         d_model: int,
+        d_head: int,
         vocab_size: int,
-        num_heads: int,
-        num_transformer_blocks: int
+        num_blocks: int
     ) -> None:
         super().__init()
         # pos embedding (should this be part of the transfomer arch?)
-        self.B, self.T, self.C = batch_size, seq_length, d_model 
         self.vocab_size = vocab_size
-        self.num_heads = num_heads
-        self.num_transformer_blocks = num_transformer_blocks
+        self.num_blocks = num_blocks 
+
+        self.token_embedding = nn.Embedding(vocab_size, d_model)
+        self.blocks = nn.ModuleList([
+            TransformerBlock(d_model, d_head) 
+            for _ in range(num_blocks)
+        ]) 
+        self.norm = nn.LayerNorm(d_model)
+        self.head = nn.Linear(d_model, vocab_size)
     
     def forward(self, x):
         """
-        Note: x has a shape of (B, T, C)
-
-        x = token_embedding(x) + pos_embedding(x)
-        x = x + attention(layernorm(x))
-        x = x + mlp(layernorm(x))
+        Note: x has a shape of (B, T)
         """
         # token embedding
-        x = nn.Embedding(self.vocab_size, self.C)(x)
+        x = self.token_embedding(x) # (B, T) -> (B, T, C) via a lookup table 
 
-        # layer norm 
-        x_norm = nn.LayerNorm(self.C)(x)
+        # todo: pos embedding
 
-        # attn block
-        x_attn = AttentionBlock()(x_norm)
-        x = x + x_attn
-
-        x_norm = nn.LayerNorm(self.C)(x) 
-        x_mlp = nn.Linear()
-
+        for block in self.blocks:
+            x = block(x)
+        x = self.norm(x) 
+        return self.head(x) # (B, T, C) -> (B, T, V)
+         
