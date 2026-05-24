@@ -1,4 +1,6 @@
-from main import Dataset, DatasetLoader, CharTokenizer
+from dataset import Dataset, DatasetLoader
+from tokenizer import CharTokenizer
+
 ds = Dataset()
 ds.parse()
 
