@@ -1,29 +1,3 @@
-# dataset init
-# dataset loader
-    # context size
-    # stride
-    # how to handle start of dataset and end of dataset
-# for sample in dataset: 
-    # train, test split
-    # tokenizer
-# token embedding: list of token ids 0 -> list of token embedding vectors
-# positional embedding: list of vectors -> modified list of vectors
-# attention block
-# MLP block
-# RMSNorm or LayerNorm block
-# Attention head
-# train
-# backprop
-# see results 
-
-# You are all resolved rather to die than to famish?
-# train -> test
-# y -> o
-# y o -> o u
-# y o u -> o u <space>
-# y o u <space> -> o u <space> a
-# y o u <space> a -> o u <space> a r
-
 import torch
 import torch.nn as nn
 import math

@@ -1,17 +1,13 @@
 from dataset import Dataset, DatasetLoader
 from tokenizer import CharTokenizer
 from transformer import Transformer
+from generate import prompt
 from constants import BATCH_SIZE, LEARNING_RATE, MAX_STEPS, SEQUENCE_LENGTH, D_HEAD, D_MODEL, NUM_BLOCKS
 import torch
 import torch.nn as nn
 
 
 def train():
-    # sample train, test batches
-    # forward pass through the model
-    # compute loss
-    # backward pass through the model with optimizer set
-    # update params
     dataset = Dataset(path='data/input.txt')
     dataset.parse()
 
@@ -70,6 +66,10 @@ def train():
 
         if step % 100 == 0 or step == MAX_STEPS - 1:
             print(f"step={step:04d} loss={loss.item():.4f}")
+            print(prompt('Shakespeare advices everyone to ', model=model, tokenizer=tokenizer, num_tokens=20, temperature=0.5))
+            # if step % 1000 == 0:
+            #     print(prompt('Shakespeare advices everyone to ', model=model, tokenizer=tokenizer, num_tokens=20, temperature=0.5))
+
 
 
 if __name__ == '__main__':
