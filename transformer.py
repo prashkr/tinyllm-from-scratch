@@ -29,6 +29,8 @@ Transformer(
 )
 """
 
+# todos: add dropout, add pos encoding, add multi head attention, add RMS norm
+# todos: experiment with different attention algorithms
 
 class MaskedSelfAttention(nn.Module):
     """
